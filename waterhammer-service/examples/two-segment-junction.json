@@ -1,0 +1,11 @@
+{
+  "pipes": [
+    { "length": 250, "diameter": 1.0, "waveSpeed": 500, "frictionFactor": 0 },
+    { "length": 150, "diameter": 0.5, "waveSpeed": 1000, "frictionFactor": 0 }
+  ],
+  "reservoirHead": 100,
+  "initialVelocity": 1,
+  "closure": { "type": "linear", "duration": 0 },
+  "discretization": { "segments": [100, 30] },
+  "duration": 1.4
+}
