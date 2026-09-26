@@ -32,7 +32,9 @@ export interface SimulationSummary {
 export function summarize(result: SimulationResult): SimulationSummary {
   const { time, head } = result.valve;
   const { initialValveHead, derived } = result;
-  const waveTravelTime = derived.theoreticalPeriod / 4; // L/a
+  // 多段：单向波传播时间 ΣL_s/a_s；一个回波间隔是其两倍。
+  const waveTravelTime =
+    derived.oneWayTravelTime ?? derived.theoreticalPeriod / 4;
 
   let peakIdx = 0;
   for (let i = 1; i < head.length; i++) {

@@ -6,4 +6,12 @@ export type { SimulationSummary } from "./analysis.js";
 export { buildApp } from "./http.js";
 export { ServiceError } from "./errors.js";
 export { GRAVITY } from "./constants.js";
-export type { SimulationRequest, SimulationResult } from "./types.js";
+export type {
+  SimulationRequest,
+  SimulationResult,
+  PipeSpec,
+  ValidatedRequest,
+  JunctionSeries,
+  Grid,
+  PipeGrid,
+} from "./types.js";

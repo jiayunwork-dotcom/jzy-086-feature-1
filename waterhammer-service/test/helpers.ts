@@ -1,7 +1,7 @@
-import type { SimulationRequest } from "../src/index.js";
+import type { PipeSpec, SimulationRequest } from "../src/index.js";
 
 /** 基准合法输入：L=1000 m, D=0.5 m, a=1000 m/s, 无摩阻, H0=50 m, V0=1 m/s。 */
-export function baseRequest(): SimulationRequest {
+export function baseRequest(): SimulationRequest & { pipe: PipeSpec } {
   return {
     pipe: { length: 1000, diameter: 0.5, waveSpeed: 1000, frictionFactor: 0 },
     reservoirHead: 50,

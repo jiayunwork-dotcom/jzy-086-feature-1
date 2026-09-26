@@ -37,15 +37,45 @@ export function buildApp(): FastifyInstance {
     const input = validateRequest(req.body);
     const result = runSimulation(input);
     const summary = summarize(result);
+    const singleSegment = result.grid.pipes.length === 1;
+    const pipeGrids = result.grid.pipes.map((p) => ({
+      index: p.index,
+      segments: p.segments,
+      dx: p.dx,
+      length: p.length,
+      diameter: p.diameter,
+      waveSpeed: p.waveSpeed,
+      frictionFactor: p.frictionFactor,
+      travelTime: p.travelTime,
+    }));
+    const grid = singleSegment
+      ? // 单段：与旧响应逐字段一致（segments/dx/dt/steps/courant）
+        {
+          segments: result.grid.segments,
+          dx: result.grid.dx,
+          dt: result.grid.dt,
+          steps: result.grid.steps,
+          courant: 1,
+        }
+      : // 多段：公共时步 + 总长/总分段 + 逐段网格
+        {
+          totalSegments: result.grid.totalSegments,
+          totalLength: result.grid.totalLength,
+          dt: result.grid.dt,
+          steps: result.grid.steps,
+          courant: 1,
+          pipes: pipeGrids,
+        };
     return reply.send({
-      grid: {
-        segments: result.grid.segments,
-        dx: result.grid.dx,
-        dt: result.grid.dt,
-        steps: result.grid.steps,
-        courant: 1,
-      },
+      grid,
       valve: result.valve,
+      // 各内部连接点的水头时间序列（单段时为空数组）
+      junctions: result.junctions.map((j) => ({
+        index: j.index,
+        x: j.x,
+        time: j.time,
+        head: j.head,
+      })),
       summary,
       finalState: result.finalState,
     });

@@ -62,4 +62,75 @@ describe("HTTP 层", () => {
     expect(res.json()).toEqual({ status: "ok" });
     await app.close();
   });
+
+  it("多段请求：返回逐段网格与连接点序列，单段响应形状不变", async () => {
+    const app = buildApp();
+    const payload = {
+      pipes: [
+        { length: 1250, diameter: 1.0, waveSpeed: 500, frictionFactor: 0 },
+        { length: 1000, diameter: 0.5, waveSpeed: 1000, frictionFactor: 0 },
+      ],
+      reservoirHead: 100,
+      initialVelocity: 0.5,
+      closure: { type: "linear", duration: 0 },
+      discretization: { segments: [25, 10] },
+      duration: 8,
+    };
+    const res = await app.inject({ method: "POST", url: "/simulate", payload });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    // 多段网格：公共时步 + 总长 + 两段各自分段
+    expect(body.grid.dt).toBeCloseTo(0.1, 10);
+    expect(body.grid.totalLength).toBe(2250);
+    expect(body.grid.totalSegments).toBe(35);
+    expect(body.grid.pipes).toHaveLength(2);
+    expect(body.grid.pipes[0].segments).toBe(25);
+    expect(body.grid.pipes[1].segments).toBe(10);
+    // 一个内部连接点，水头序列与时间等长
+    expect(body.junctions).toHaveLength(1);
+    expect(body.junctions[0].x).toBeCloseTo(1250, 9);
+    expect(body.junctions[0].head.length).toBe(body.junctions[0].time.length);
+    // 末态节点数 = 25+10+1
+    expect(body.finalState.x.length).toBe(36);
+    await app.close();
+
+    // 单段响应保持旧形状：无 totalLength / pipes / junctions
+    const app2 = buildApp();
+    const single = await app2.inject({
+      method: "POST",
+      url: "/simulate",
+      payload: baseRequest(),
+    });
+    const sb = single.json();
+    expect(sb.grid).toEqual({
+      segments: 20,
+      dx: 50,
+      dt: 0.05,
+      steps: 200,
+      courant: 1,
+    });
+    expect(sb.junctions).toEqual([]);
+    expect(sb.grid.totalLength).toBeUndefined();
+    expect(sb.grid.pipes).toBeUndefined();
+    await app2.close();
+  });
+
+  it("多段凑不出公共时步 -> 400 GRID_NOT_CONFORMING", async () => {
+    const app = buildApp();
+    const payload = {
+      pipes: [
+        { length: 1250, diameter: 1.0, waveSpeed: 500, frictionFactor: 0 },
+        { length: 1000, diameter: 0.5, waveSpeed: 1000, frictionFactor: 0 },
+      ],
+      reservoirHead: 100,
+      initialVelocity: 0.5,
+      closure: { type: "linear", duration: 0 },
+      discretization: { timeStep: 0.07 },
+      duration: 4,
+    };
+    const res = await app.inject({ method: "POST", url: "/simulate", payload });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe("GRID_NOT_CONFORMING");
+    await app.close();
+  });
 });
